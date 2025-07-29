@@ -1,11 +1,19 @@
-// Option 1: Using native fetch instead of axios and jsdom-compatible cheerio
+// First install: npm install cheerio
+// Use cheerio/server instead of cheerio-without-node-native
+// import { load } from "cheerio/server";
+import { load } from "cheerio";
+
 export default async function extractLyrics(url) {
   try {
-    // Use native fetch instead of axios
     const response = await fetch(url, {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate",
+        Connection: "keep-alive",
       },
     });
 
@@ -14,49 +22,27 @@ export default async function extractLyrics(url) {
     }
 
     const html = await response.text();
+    const $ = load(html);
 
-    // Simple regex-based extraction as fallback
-    let lyrics = extractLyricsWithRegex(html);
+    let lyrics = $('div[class="lyrics"]').text().trim();
 
-    return lyrics || null;
+    if (!lyrics) {
+      lyrics = "";
+      $('div[class^="Lyrics__Container"]').each((i, elem) => {
+        if ($(elem).text().length !== 0) {
+          let snippet =
+            $(elem)
+              .html()
+              ?.replace(/<br>/g, "\n")
+              ?.replace(/<(?!\s*br\s*\/?)[^>]+>/gi, "") || "";
+          lyrics += $("<textarea/>").html(snippet).text().trim() + "\n\n";
+        }
+      });
+    }
+
+    return lyrics.trim() || null;
   } catch (error) {
     console.error("Error extracting lyrics:", error);
     throw error;
   }
-}
-
-function extractLyricsWithRegex(html) {
-  // Try multiple patterns for Genius lyrics
-  const patterns = [
-    // New Genius format
-    /<div[^>]*class="[^"]*Lyrics__Container[^"]*"[^>]*>(.*?)<\/div>/gs,
-    // Old Genius format
-    /<div[^>]*class="lyrics"[^>]*>(.*?)<\/div>/gs,
-  ];
-
-  let lyrics = "";
-
-  for (const pattern of patterns) {
-    const matches = html.match(pattern);
-    if (matches) {
-      matches.forEach((match) => {
-        // Clean HTML tags and decode entities
-        let cleaned = match
-          .replace(/<br\s*\/?>/gi, "\n")
-          .replace(/<[^>]+>/g, "")
-          .replace(/&quot;/g, '"')
-          .replace(/&amp;/g, "&")
-          .replace(/&lt;/g, "<")
-          .replace(/&gt;/g, ">")
-          .replace(/&nbsp;/g, " ")
-          .trim();
-
-        if (cleaned.length > 0) {
-          lyrics += cleaned + "\n\n";
-        }
-      });
-    }
-  }
-
-  return lyrics.trim() || null;
 }
