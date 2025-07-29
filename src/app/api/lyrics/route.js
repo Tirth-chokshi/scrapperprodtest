@@ -8,7 +8,7 @@ export async function POST(request) {
       return Response.json({ error: "URL is required" }, { status: 400 });
     }
 
-    
+    // Validate URL format
     if (!url.includes("genius.com")) {
       return Response.json(
         { error: "Only Genius URLs are supported" },
@@ -17,6 +17,20 @@ export async function POST(request) {
     }
 
     console.log("Attempting to extract lyrics from:", url);
+
+    // Test if we can reach the URL at all
+    try {
+      const testResponse = await fetch(url, {
+        method: "HEAD",
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
+      });
+      console.log("URL accessibility test - Status:", testResponse.status);
+    } catch (testError) {
+      console.log("URL accessibility test failed:", testError.message);
+    }
 
     const lyrics = await extractLyrics(url);
 
