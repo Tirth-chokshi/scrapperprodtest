@@ -1,4 +1,4 @@
-import extractLyrics from "@/lib/extractLyrics";
+import { extractLyrics } from "@/lib/extractLyrics";
 
 export async function POST(request) {
   try {
