@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Search, Music, User, Clock, Heart } from "lucide-react";
-import { debounce } from "lodash";
+import { Search, Music, User, Heart } from "lucide-react";
 
 export default function LyricsSearchApp() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,19 +24,21 @@ export default function LyricsSearchApp() {
     setError("");
 
     try {
+      const API_BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
       const response = await fetch(
-        `/api/search?q=${encodeURIComponent(query)}`
+        `${API_BASE_URL}/api/search?q=${encodeURIComponent(query)}`
       );
       const data = await response.json();
 
       if (response.ok) {
-        setSearchResults(data);
+        setSearchResults(data.data || data);
       } else {
         setError(data.error || "Failed to search songs");
         setSearchResults([]);
       }
     } catch (err) {
-      setError("Network error. Please try again.");
+      setError("Network error. Please check if the backend server is running.");
       setSearchResults([]);
     } finally {
       setIsSearching(false);
@@ -60,7 +61,9 @@ export default function LyricsSearchApp() {
     setError("");
 
     try {
-      const response = await fetch("/api/lyrics", {
+      const API_BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const response = await fetch(`${API_BASE_URL}/api/lyrics`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -77,7 +80,7 @@ export default function LyricsSearchApp() {
         setLyrics("");
       }
     } catch (err) {
-      setError("Network error. Please try again.");
+      setError("Network error. Please check if the backend server is running.");
       setLyrics("");
     } finally {
       setIsLoadingLyrics(false);
